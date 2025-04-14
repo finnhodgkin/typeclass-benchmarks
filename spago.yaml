@@ -2,11 +2,17 @@ package:
   name: purs-type-level-class
   dependencies:
     - aff
+    - arrays
     - console
     - effect
+    - integers
     - maybe
+    - node-buffer
+    - node-fs
     - prelude
+    - random
     - record
+    - strings
     - typelevel-prelude
   test:
     main: Test.Main

@@ -7,20 +7,13 @@ import Prim.RowList (class RowToList, RowList, Nil, Cons)
 import Prim.TypeError (class Fail, Text, Quote, Beside)
 import Type.Proxy (Proxy)
 
-newtype Schema = Schema
-  { user_id :: Int
-  , name :: String
-  , email :: String
-  , password :: String
-  }
-
 -- | Generic record deep comparison that handles nested records via RowList
-nestedRecordWithin :: ∀ r1 @nt rl1 r2.
+inSchema :: ∀ r1 @nt rl1 r2.
   RowToList r1 rl1 =>
   NestedRecordWithinRL rl1 r1 r2 =>
   Newtype nt (Record r2) =>
   { | r1 } -> Boolean
-nestedRecordWithin _ = true
+inSchema _ = true
 
 -- | The core type class that iterates through the fields
 class NestedRecordWithinRL (rl :: RowList Type) (r1 :: Row Type) (r2 :: Row Type) | rl -> r1
@@ -63,45 +56,64 @@ class TypesEqual (name :: Symbol) (a :: Type) (b :: Type)
 instance TypesEqual name a a
 else instance
   ( IsSymbol name
+  , SymbolToType  targetType sym
+  , TypesEqual name sourceType targetType
+  ) => TypesEqual name sourceType (Proxy sym)
+else instance
+  ( IsSymbol name
   , RowToList nestedSrc rlSrc
-  , NestedRecordWithinRL rlSrc nestedSrc nestedTarget  -- Recursively check nested records
+  , NestedRecordWithinRL rlSrc nestedSrc nestedTarget
   ) => TypesEqual name (Record nestedSrc) (Record nestedTarget)
 else instance
   ( IsSymbol name
   , RowToList nestedSrc rlSrc
-  , NestedRecordWithinRL rlSrc nestedSrc nestedTarget  -- Recursively check nested records
+  , NestedRecordWithinRL rlSrc nestedSrc nestedTarget
   , Newtype nt (Record nestedTarget)
   ) => TypesEqual name (Record nestedSrc) nt
 else instance
   ( IsSymbol name
-  , Newtype na (Record nestedSrc)
-  , RowToList nestedSrc rlSrc
-  , NestedRecordWithinRL rlSrc nestedSrc nestedTarget  -- Recursively check nested records
-  ) => TypesEqual name na (Record nestedTarget)
-else instance
-  ( IsSymbol name
-  , Newtype na (Record nestedSrc)
-  , Newtype nb (Record nestedTarget)
-  , RowToList nestedSrc rlSrc
-  , NestedRecordWithinRL rlSrc nestedSrc nestedTarget  -- Recursively check nested records
-  ) => TypesEqual name na nb
-else instance
-  ( IsSymbol name
-  , Fail (Beside (Text "Type mismatch for field '") (Beside (Quote name) (Text "': incompatible types")))
+  , Fail (Beside (Text "Type mismatch for field ") (Beside (Quote name) (Beside (Text ". Incompatible types ") (Beside (Quote a) (Beside (Text " and ") (Quote b))))))
   ) => TypesEqual name a b
 
-test1 :: Boolean
-test1 = nestedRecordWithin @Person { name: "Alice" }
+class SymbolToType (a :: Type) (sym :: Symbol)   | sym -> a
 
-test2 :: Boolean
-test2 = nestedRecordWithin @Person
-  { name: "Alice", address: { street: "123 Main St", city: "Boston", zip: "2323" } }
+newtype Schema = Schema
+  { users :: Users
+  , events :: Events
+  , events2 :: Events2
+  , events3 :: Events3
+  }
+derive instance Newtype Schema _
 
-newtype Person = Person { name :: String, id :: Int, address :: Address  }
-derive instance Newtype Person _
-newtype Address = Address { street :: String, city :: String, zip :: String }
-derive instance Newtype Address _
+newtype Users = Users
+  { name :: String
+  , created_events :: Proxy "event"
+  , attending_events :: Proxy "event"
+  , friends :: Proxy "user"
+  }
+derive instance Newtype Users _
+instance SymbolToType  Users  "user"
 
-class SymbolToType (sym :: Symbol) (a :: Type)
+newtype Events = Events
+  { name :: String
+  , created_by :: Proxy "user"
+  , attendees :: Proxy "user"
+  }
+derive instance Newtype Events _
+-- instance SymbolToType  Events  "event"
 
-instance SymbolToType "address" Address
+newtype Events2 = Events2
+  { name :: String
+  , created_by :: Proxy "user"
+  , attendees :: Proxy "user"
+  }
+derive instance Newtype Events2 _
+-- instance SymbolToType  Events2  "event2"
+
+newtype Events3 = Events3
+  { name :: String
+  , created_by :: Proxy "user"
+  , attendees :: Proxy "user"
+  }
+derive instance Newtype Events3 _
+-- instance SymbolToType  Events3  "event3"
