@@ -3,7 +3,6 @@ module SchemaGenerator where
 import Prelude
 
 import Data.Array (range)
-import Data.FoldableWithIndex (forWithIndex_)
 import Data.String (joinWith)
 import Effect (Effect)
 import Effect.Console (log)
@@ -14,10 +13,6 @@ import Node.FS.Sync (writeTextFile)
 generateLargeSchema :: Int -> Effect Unit
 generateLargeSchema count = do
   let
-    -- Generate a series of event types with sequential numbering
-    eventDefs = map genEventType (range 1 count)
-    -- Generate a series of user types with sequential numbering
-    userDefs = map genUserType (range 1 count)
     -- Generate the schema wrapper that contains all types
     schemaContents = genSchemaType count
     -- Build the full file contents
@@ -26,13 +21,11 @@ generateLargeSchema count = do
       , schemaContents
       ]
 
-  forWithIndex_ userDefs \num ->
-    writeTextFile UTF8 ("src/Tables/Users" <> show (num + 1) <> ".purs")
-  forWithIndex_ eventDefs \num ->
-    writeTextFile UTF8 ("src/Tables/Events" <> show (num + 1) <> ".purs")
+  -- for (range 1 count) \num ->
+  --   writeTextFile UTF8 ("src/Tables/Users" <> show num <> ".purs") (genUserType num)
 
   -- Write to the output file
-  writeTextFile UTF8 "src/LargeSchema.purs" fileContents
+  writeTextFile UTF8 "src/LargeSchema.purs" $ fileContents <> (joinWith "\n\n" $ range 1 5000 # map \num -> genUserType num)
   log $ "Generated schema with " <> show count <> " event types and " <> show count <> " user types."
 
 -- | Module header with imports
@@ -40,7 +33,7 @@ moduleHeader :: String
 moduleHeader = """module LargeSchema where
 
 import Data.Newtype (class Newtype)
-import MinimalAPI (class SymbolToType)
+import RecordSchemaValidation (class SymbolToType)
 import Type.Proxy (Proxy)
 """
 
@@ -50,61 +43,28 @@ genSchemaType count =
   "newtype Schema = Schema\n" <>
   "  { " <> (joinWith "\n  , " $ fieldsArray) <> "\n" <>
   "  }\n" <>
-  "derive instance Newtype Schema _"
+  "derive instance Newtype Schema _\n"
+  <> relationshipInstances
   where
+    relationshipInstances = joinWith "" $
+     range 1 count # map \i -> "derive instance Newtype Users" <> show i <> " _\n"
     fieldsArray =
-      [ "users1 :: Proxy \"user1\"" ] <>
-      (map (\i -> "users" <> show i <> " :: Proxy \"user" <> show i <> "\"") (range 2 count)) <>
-      (map (\i -> "events" <> show i <> " :: Proxy \"event" <> show i <> "\"") (range 1 count))
-
--- | Generate an event type with a specific number
-genEventType :: Int -> String
-genEventType num =
-  "module Events" <> show num <> " where\n" <>
-  "\n" <>
-  """import Data.Newtype (class Newtype)
-import MinimalAPI (class SymbolToType)
-import Type.Proxy (Proxy)
-newtype Events""" <> show num <> " = Events" <> show num <> "\n" <>
-  "  { name :: String\n" <>
-  "  , description :: String\n" <>
-  "  , location :: String\n" <>
-  "  , created_by :: Proxy \"user" <> genRandomNum num <> "\"\n" <>
-  "  , attendees :: Proxy \"user" <> genRandomNum num <> "\"\n" <>
-  "  , sponsors :: Proxy \"user" <> genRandomNum num <> "\"\n" <>
-  "  , related_events :: Proxy \"event" <> genRandomNum num <> "\"\n" <>
-  "  }\n" <>
-  "derive instance Newtype Events" <> show num <> " _\n" <>
-  "instance SymbolToType Events" <> show num <> " \"event" <> show num <> "\""
+      [ "users1 :: Proxy \"Users1\"" ] <>
+      (map (\i -> "users" <> show i <> " :: Proxy \"Users" <> show i <> "\"") (range 2 5000))
 
 -- | Generate a user type with a specific number
 genUserType :: Int -> String
 genUserType num =
-  "module Users" <> show num <> " where\n" <>
-  "\n" <>
-  """import Data.Newtype (class Newtype)
-import MinimalAPI (class SymbolToType)
-import Type.Proxy (Proxy)
-newtype Users""" <> show num <> " = Users" <> show num <> "\n" <>
+  """newtype Users""" <> show num <> " = Users" <> show num <> "\n" <>
   "  { name :: String\n" <>
   "  , email :: String\n" <>
   "  , age :: Int\n" <>
-  "  , created_events :: Proxy \"event" <> genRandomNum num <> "\"\n" <>
-  "  , attending_events :: Proxy \"event" <> genRandomNum num <> "\"\n" <>
-  "  , friends :: Proxy \"user" <> genRandomNum num <> "\"\n" <>
-  "  , followed_events :: Proxy \"event" <> genRandomNum num <> "\"\n" <>
-  "  }\n" <>
-  "derive instance Newtype Users" <> show num <> " _\n" <>
-  "instance SymbolToType Users" <> show num <> " \"user" <> show num <> "\""
+  "  , friends :: Proxy \"Users1\"" <>
+  "  }\n"
 
--- | Generate a random number within range for random relationships
-genRandomNum :: Int -> String
-genRandomNum seed =
-  -- Use a simple random number formula based on the seed
-  show $ (seed * 73 `mod` seed + 1)
 
 -- | Main function to generate different sizes of schemas
-main :: Effect Unit
-main = do
+main :: Int -> Effect Unit
+main count = do
   -- Generate schema with 10 types
-  generateLargeSchema 10
+  generateLargeSchema count

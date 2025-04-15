@@ -7,12 +7,15 @@
  * to create schemas of various sizes for performance testing.
  */
 
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
+import { main } from './output/SchemaGenerator/index.js';
+
+import { execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+
 
 // Configuration
-const SIZES = [10];
+const SIZES = [10, 100, 500, 1000, 2500, 5000];
 const OUTPUT_DIR = 'generated';
 
 // Ensure output directory exists
@@ -22,29 +25,14 @@ if (!fs.existsSync(OUTPUT_DIR)) {
 
 // Build the generator
 console.log('Building schema generator...');
-execSync('spago build', { stdio: 'inherit' });
 
 // Function to run the generator with a specific size
 function generateSchema(size) {
   console.log(`\nGenerating schema with ${size} types...`);
 
-  // Update the main function in SchemaGenerator.purs
-  const generatorPath = path.join('src', 'SchemaGenerator.purs');
-  let content = fs.readFileSync(generatorPath, 'utf8');
-
-  // Replace the main function with one that only generates the requested size
-  const mainFunctionRegex = /main :: Effect Unit\nmain = do[\s\S]*?(?=\n\n|$)/;
-  const newMainFunction = `main :: Effect Unit
-main = do
-  -- Generate schema with ${size} types
-  generateLargeSchema ${size}`;
-
-  content = content.replace(mainFunctionRegex, newMainFunction);
-  fs.writeFileSync(generatorPath, content);
-
   // Run the generator
   const startTime = Date.now();
-  execSync('spago run --main SchemaGenerator', { stdio: 'inherit' });
+  main(size)();
   const endTime = Date.now();
 
   // Calculate time taken and file size
