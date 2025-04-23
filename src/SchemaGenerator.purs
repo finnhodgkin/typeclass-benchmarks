@@ -47,7 +47,7 @@ genSchemaType count =
   <> relationshipInstances
   where
     relationshipInstances = joinWith "" $
-     range 1 count # map \i -> "derive instance Newtype Users" <> show i <> " _\n"
+     range 1 count # map \i -> "instance SymbolToType Schema Users" <> show i <> " \"Users" <> show i <> "\"" <> "\n"
     fieldsArray =
       [ "users1 :: Proxy \"Users1\"" ] <>
       (map (\i -> "users" <> show i <> " :: Proxy \"Users" <> show i <> "\"") (range 2 5000))
@@ -55,13 +55,12 @@ genSchemaType count =
 -- | Generate a user type with a specific number
 genUserType :: Int -> String
 genUserType num =
-  """newtype Users""" <> show num <> " = Users" <> show num <> "\n" <>
+  """type Users""" <> show num <> " =\n" <>
   "  { name :: String\n" <>
   "  , email :: String\n" <>
   "  , age :: Int\n" <>
-  "  , friends :: Proxy \"Users1\"" <>
+  "  , friends :: Proxy \"Users1\"\n" <>
   "  }\n"
-
 
 -- | Main function to generate different sizes of schemas
 main :: Int -> Effect Unit
