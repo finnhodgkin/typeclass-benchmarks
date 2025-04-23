@@ -5,7 +5,7 @@ import Prelude
 import Effect (Effect)
 import Effect.Console (log)
 import RecordSchemaValidation (inSchema)
-import Schema (Schema)
+import LargeSchema (Schema)
 
 -- Test function that validates a simple record against the large schema
 testSchema :: Effect Unit
@@ -18,17 +18,17 @@ testSchema = do
 -- Use the inSchema function to validate a record against our large schema
 result :: Boolean
 result = inSchema @Schema
-  { users:
-      { id: 1
-      , created_by:
-          { id: 1
-          , created_by:
-              { id: 2
-              , created_by:
-                  { id: 2
-                  , created_by:
-                      { id: 2
-                      , created_by: { id: 3 }
+  { users1:
+      { age: 1
+      , friends:
+          { age: 1
+          , friends:
+              { age: 2
+              , friends:
+                  { age: 2
+                  , friends:
+                      { age: 2
+                      , friends: { age: 3 }
                       }
                   }
               }
