@@ -65,6 +65,12 @@ else instance
   ) => TypesEqual name (Record nestedSrc) (Record nestedTarget) schema
 else instance
   ( IsSymbol name
+  , RowToList nestedSrc rlSrc
+  , NestedRecordWithinRL rlSrc nestedSrc nestedTarget schema
+  , Newtype ty (Record nestedTarget)
+  ) => TypesEqual name (Record nestedSrc) ty schema
+else instance
+  ( IsSymbol name
   , Fail (Beside (Text "Type mismatch for field ") (Beside (Quote name) (Beside (Text ". Incompatible types ") (Beside (Quote a) (Beside (Text " and ") (Quote b))))))
   ) => TypesEqual name a b schema
 

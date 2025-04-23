@@ -5,22 +5,35 @@ import Prelude
 import Effect (Effect)
 import Effect.Console (log)
 import RecordSchemaValidation (inSchema)
-import LargeSchema (Schema)
+import Schema (Schema)
 
 -- Test function that validates a simple record against the large schema
 testSchema :: Effect Unit
 testSchema = do
   -- Reporting success means type checking worked
   log "Schema validation passed!"
-  -- log $ "Result: " <> show result
+
+-- log $ "Result: " <> show result
 
 -- Use the inSchema function to validate a record against our large schema
 result :: Boolean
 result = inSchema @Schema
-  { users1: { name: "Alice", friends: { name: "Bob"} }
-  , users2: { name: "FFFF" }
-  , users4: { name: "FLKDJFLDJF"}
-  , users5000: { name: "Finn" }
+  { users:
+      { id: 1
+      , created_by:
+          { id: 1
+          , created_by:
+              { id: 2
+              , created_by:
+                  { id: 2
+                  , created_by:
+                      { id: 2
+                      , created_by: { id: 3 }
+                      }
+                  }
+              }
+          }
+      }
   }
 
 -- Main function to run the test
